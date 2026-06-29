@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Larry's Prep Calculator</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f7f5f0; --surface: #ffffff; --surface2: #f1efe8;
+  --border: #d3d1c7; --border-mid: #b4b2a9;
+  --text: #1a1a18; --text-mid: #5f5e5a; --text-light: #888780;
+  --green: #3b6d11; --green-lt: #eaf3de; --green-mid: #639922;
+  --amber: #854f0b; --amber-lt: #faeeda;
+  --blue: #185fa5; --blue-lt: #e6f1fb;
+  --red: #a32d2d; --red-lt: #fcebeb;
+  --radius: 10px; --radius-sm: 6px;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+.header { background: var(--text); color: white; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }
+.header-left h1 { font-size: 18px; font-weight: 600; }
+.header-left p { font-size: 13px; color: #888780; margin-top: 2px; }
+.header-badge { font-size: 11px; font-weight: 600; padding: 4px 10px; background: var(--green); color: white; border-radius: 99px; }
+.main { max-width: 960px; margin: 0 auto; padding: 28px 24px; }
+.upload-zone { border: 2px dashed var(--border-mid); border-radius: var(--radius); padding: 36px 24px; text-align: center; cursor: pointer; transition: all 0.15s; background: var(--surface); margin-bottom: 24px; }
+.upload-zone:hover, .upload-zone.drag { border-color: var(--green-mid); background: var(--green-lt); }
+.upload-icon { font-size: 36px; margin-bottom: 10px; }
+.upload-zone h2 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.upload-zone p { font-size: 13px; color: var(--text-mid); }
+.upload-zone .hint { font-size: 12px; color: var(--text-light); margin-top: 8px; }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+.metric-label { font-size: 11px; color: var(--text-light); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.metric-value { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+.metric-sub { font-size: 12px; color: var(--text-mid); margin-top: 2px; }
+.controls { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.controls label { font-size: 13px; color: var(--text-mid); white-space: nowrap; font-weight: 500; }
+.controls input[type=range] { flex: 1; min-width: 100px; height: 4px; border-radius: 2px; -webkit-appearance: none; appearance: none; background: linear-gradient(to right, var(--green-mid) 0%, var(--green-mid) var(--pct, 50%), var(--border) var(--pct, 50%)); cursor: pointer; }
+.controls input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--green); border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+.scale-val { font-size: 14px; font-weight: 700; color: var(--green); min-width: 48px; text-align: right; }
+.divider { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
+.tab-bar { display: flex; gap: 6px; flex-wrap: wrap; }
+.tab { font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 99px; cursor: pointer; border: 1px solid var(--border); background: transparent; color: var(--text-mid); transition: all 0.12s; }
+.tab:hover { border-color: var(--border-mid); color: var(--text); }
+.tab.active { background: var(--text); color: white; border-color: var(--text); }
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+table { width: 100%; border-collapse: collapse; }
+th { font-size: 11px; font-weight: 600; color: white; background: var(--text); padding: 9px 14px; text-align: left; text-transform: uppercase; letter-spacing: 0.05em; }
+th:nth-child(3), th:nth-child(4) { text-align: right; }
+td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 14px; }
+tr:last-child td { border-bottom: none; }
+tr.crow:hover td { background: #f4f2ec; cursor: pointer; }
+td:nth-child(3), td:nth-child(4) { text-align: right; }
+.cat-row td { background: var(--surface2); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.06em; padding: 7px 14px; border-bottom: 1px solid var(--border); }
+.rname { font-weight: 600; font-size: 14px; }
+.rlink { font-weight: 600; font-size: 14px; color: var(--green); text-decoration: underline; text-underline-offset: 2px; }
+.rsrc { font-size: 12px; color: var(--text-light); margin-top: 3px; line-height: 1.4; }
+.qty-needed { font-weight: 500; }
+.batches-big { font-size: 20px; font-weight: 700; color: var(--green); }
+.batch-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+.dash { color: var(--text-light); }
+.badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 99px; margin-left: 6px; vertical-align: middle; }
+.badge-warn { background: var(--amber-lt); color: var(--amber); }
+.badge-par { background: var(--surface2); color: var(--text-light); }
+.actions { display: flex; justify-content: flex-end; margin-bottom: 20px; gap: 10px; }
+.btn { font-size: 13px; font-weight: 500; padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text-mid); transition: all 0.12s; display: flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--border-mid); color: var(--text); }
+.btn-primary { background: var(--green); color: white; border-color: var(--green); }
+.btn-primary:hover { background: var(--green-mid); border-color: var(--green-mid); color: white; }
+.empty-state { text-align: center; padding: 48px 24px; color: var(--text-mid); display: none; }
+.empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state h3 { font-size: 16px; margin-bottom: 8px; color: var(--text); }
+.empty-state p { font-size: 14px; max-width: 400px; margin: 0 auto; }
+.footer { text-align: center; font-size: 12px; color: var(--text-light); padding: 20px 0 32px; border-top: 1px solid var(--border); margin-top: 8px; }
+/* Modal */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.modal { background: #fff; border-radius: 14px; max-width: 540px; width: 100%; max-height: 88vh; overflow-y: auto; padding: 28px; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+.modal-x { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface2); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; color: var(--text-mid); }
+.modal-x:hover { background: var(--border); color: var(--text); }
+.modal h2 { font-size: 20px; font-weight: 700; padding-right: 36px; margin-bottom: 4px; }
+.modal .desc { font-size: 13px; color: var(--text-light); margin-bottom: 20px; line-height: 1.5; }
+.modal h3 { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-light); margin: 18px 0 8px; }
+.ing-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.ing-row:last-child { border-bottom: none; }
+.ing-qty { font-weight: 600; color: var(--green); font-size: 13px; }
+.steps-box { font-size: 13px; color: var(--text-mid); line-height: 1.7; background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; }
+.allergen-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.allergen-pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--red-lt); color: var(--red); }
+@media print {
+  .header { background: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .upload-zone, .controls, .actions, .footer { display: none !important; }
+  .main { padding: 0; max-width: 100%; }
+  th { background: black !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cat-row td { background: #f1efe8 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Larry's Sandwiches — Prep Calculator</h1>
+    <p>Upload a Toast product mix export to generate your weekly prep sheet</p>
+  </div>
+  <span class="header-badge">Kitchen Tool</span>
+</div>
+
+<div class="main">
+  <div class="upload-zone" id="dropZone">
+    <div class="upload-icon">📂</div>
+    <h2>Upload your Toast CSV</h2>
+    <p>Drag and drop the <strong>Items.csv</strong> from your Toast product mix export</p>
+    <p class="hint">Toast: Reports → Menu Item Sales → Export → Items.csv</p>
+    <input type="file" id="fileInput" accept=".csv" style="display:none">
+  </div>
+
+  <div id="appContent" style="display:none">
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Sandwiches sold</div><div class="metric-value" id="mSand">0</div><div class="metric-sub" id="mPeriod">—</div></div>
+      <div class="metric"><div class="metric-label">Top seller</div><div class="metric-value" id="mTop" style="font-size:16px;padding-top:4px">—</div><div class="metric-sub" id="mTopQty"></div></div>
+      <div class="metric"><div class="metric-label">Prep scale</div><div class="metric-value" id="mScale">100%</div><div class="metric-sub">adjust below</div></div>
+      <div class="metric"><div class="metric-label">Prep items</div><div class="metric-value" id="mItems">0</div><div class="metric-sub">components tracked</div></div>
+    </div>
+    <div class="controls">
+      <label>Prep scale</label>
+      <input type="range" id="scaleSlider" min="50" max="200" value="100" step="5">
+      <span class="scale-val" id="scaleLabel">100%</span>
+      <div class="divider"></div>
+      <div class="tab-bar">
+        <button class="tab active" data-tab="all">All items</button>
+        <button class="tab" data-tab="sandwiches">Sandwiches</button>
+        <button class="tab" data-tab="sauces">Sauces</button>
+        <button class="tab" data-tab="bread">Bread</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="window.print()">🖨️ Print</button>
+      <button class="btn btn-primary" onclick="downloadCSV()">📊 Export CSV</button>
+    </div>
+    <div style="background:var(--blue-lt);border:1px solid #b5d4f4;border-radius:var(--radius);padding:11px 14px;margin-bottom:16px;font-size:13px;color:var(--blue);">
+      💡 Click any underlined item to view its full recipe.
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Recipe / Component</th><th>Sold from</th><th>Total needed</th><th>Batches to make</th></tr></thead>
+        <tbody id="prepBody"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="noRows"><div class="icon">🔍</div><h3>No items in this view</h3><p>Try switching tabs.</p></div>
+  </div>
+
+  <div class="empty-state" id="noMatch">
+    <div class="icon">⚠️</div><h3>No matching menu items found</h3>
+    <p>Upload the <strong>Items.csv</strong> from your Toast product mix export.</p>
+  </div>
+
+  <div class="footer" id="footerNote" style="display:none">
+    Batch counts calculated from sales data. Adjust scale slider for projected volume.<br>
+    Items marked <strong>par</strong> have no sales data — prep based on standing par levels.
+  </div>
+</div>
+
+<script>
+// ── All Recipes (sandwiches + all sauces/components) ─────────────────────────
+var RECIPES = {
+  // SANDWICHES
+  "Turkey Club": {
+    cat:"sandwiches", allergens:["Dairy","Egg"],
+    description:"Thinly sliced turkey, crispy bacon, avocado mayo, pico de gallo, provolone, mixed greens on a soft sub bun",
+    steps:"Cut open a bun and spread avo mayo on each side. Place turkey piece by piece. Add 2–3 bacon slices. Top with provolone, Pico de Gallo (drain liquid first), and lettuce mix. Roll, slice in half and wrap.",
+    ingredients:[{name:"Sub Bun",qty:"1"},{name:"Sliced Turkey",qty:"80g"},{name:"Bacon",qty:"2–3 slices"},{name:"Provolone Cheese",qty:"3 slices"},{name:"Avo Mayo",qty:"60g"},{name:"Pico de Gallo",qty:"45g"},{name:"Lettuce Mix",qty:"40g"}],
+    components:[{name:"Pico de Gallo",per:45,unit:"g",batch:1700,bUnit:"g"},{name:"Avo Mayo",per:60,unit:"g",batch:1500,bUnit:"g"},{name:"Sub Buns",per:1,unit:"bun",batch:5,bUnit:"buns"}]
+  },
+  "Pesto Italian": {
+    cat:"sandwiches", allergens:["Dairy","Egg"],
+    description:"Italian cold cuts, sundried tomato pesto, provolone, garden pickles, mixed greens on a soft sub bun",
+    steps:"Cut open a bun and spread sundried tomato pesto on both sides. Layer Italian cold cuts piece by piece. Top with provolone, garden pickles, and lettuce mix. Roll, slice in half and wrap.",
+    ingredients:[{name:"Sub Bun",qty:"1"},{name:"Italian Cold Cuts",qty:"80g"},{name:"Sundried Tomato Pesto",qty:"55g"},{name:"Provolone Cheese",qty:"3 slices"},{name:"Garden Pickles",qty:"50g"},{name:"Lettuce Mix",qty:"40g"}],
+    components:[{name:"Sundried Tomato Pesto",per:55,unit:"g",batch:1150,bUnit:"g"},{name:"Garden Pickles",per:50,unit:"g",batch:2000,bUnit:"g"},{name:"Sub Buns",per:1,unit:"bun",batch:5,bUnit:"buns"}]
+  },
+  "Cubano": {
+    cat:"sandwiches", allergens:["Dairy","Mustard"],
+    description:"Cuban roast pork, ham, provolone, pickles, mustard, pressed sub bun",
+    steps:"Spread mustard on both sides of the bun. Layer Cuban roast pork and ham piece by piece. Top with provolone and pickles. Press in oven on Heat & Toast. Roll, slice in half and wrap.",
+    ingredients:[{name:"Sub Bun",qty:"1"},{name:"Cuban Roast Pork",qty:"80g"},{name:"Ham",qty:"80g"},{name:"Provolone Cheese",qty:"3 slices"},{name:"Pickles",qty:"30g"},{name:"Mustard",qty:"30g"}],
+    components:[{name:"Cuban Roast Pork",per:80,unit:"g",batch:6000,bUnit:"g"},{name:"Sub Buns",per:1,unit:"bun",batch:5,bUnit:"buns"}]
+  },
+  "B.B. Ham": {
+    cat:"sandwiches", allergens:["Dairy","Egg"],
+    description:"Smoked ham, brown butter mayo, aged cheddar, garlic dill pickles, celeriac remoulade on a soft sub bun",
+    steps:"Put brown butter mayo on each side of the bun. Place ham piece by piece. Top with aged cheddar, garlic dill pickles, a drizzle of sherry vin, and celeriac remoulade. Roll, slice in half and wrap.",
+    ingredients:[{name:"Sub Bun",qty:"1"},{name:"Smoked Ham",qty:"80g"},{name:"Brown Butter Mayo",qty:"55g"},{name:"Aged Cheddar",qty:"28g"},{name:"Garlic Dill Pickles",qty:"25g"},{name:"Sherry Vin",qty:"5g"},{name:"Celeriac Remoulade",qty:"65g"}],
+    components:[{name:"Brown Butter Mayo",per:55,unit:"g",batch:1500,bUnit:"g"},{name:"Celeriac Remoulade",per:65,unit:"g",batch:500,bUnit:"g"},{name:"Sherry Vin",per:5,unit:"g",batch:3630,bUnit:"g"},{name:"Sub Buns",per:1,unit:"bun",batch:5,bUnit:"buns"}]
+  },
+  "Mortadella": {
+    cat:"sandwiches", allergens:["Dairy","Mustard","Egg"],
+    description:"Thinly sliced mortadella, ranch sauce, ballpark mustard, provolone, garden pickles, lettuce mix on a soft sub bun",
+    steps:"Put ranch on each side of the bun, then ballpark mustard on the bottom. Place mortadella piece by piece. Top with 3 slices provolone, garden pickles, and lettuce mix. Roll, slice in half and wrap.",
+    ingredients:[{name:"Sub Bun",qty:"1"},{name:"Mortadella",qty:"80g"},{name:"Ranch Sauce",qty:"55g"},{name:"Ballpark Mustard",qty:"30g"},{name:"Provolone Cheese",qty:"3 slices"},{name:"Garden Pickles",qty:"50g"},{name:"Lettuce Mix",qty:"50g"}],
+    components:[{name:"Ranch Sauce",per:55,unit:"g",batch:500,bUnit:"g"},{name:"Ballpark Mustard",per:30,unit:"g",batch:2100,bUnit:"g"},{name:"Garden Pickles",per:50,unit:"g",batch:2000,bUnit:"g"},{name:"Sub Buns",per:1,unit:"bun",batch:5,bUnit:"buns"}]
+  },
+  "Chopped Chicken Caesar": {
+    cat:"sandwiches", allergens:["Dairy","Egg","Gluten"],
+    description:"Caesar-marinated chicken, caesar dressing, parmesan, croutons, mixed greens on a soft sub bun",
+    steps:"Spread caesar dressing on both sides of the bun. Add caesar chicken, top with parm, croutons, and lettuce mix. Roll, slice in half and wrap.",
+    ingredients:[{name:"Sub Bun",qty:"1"},{name:"Caesar Chicken",qty:"80g"},{name:"Caesar Dressing",qty:"60g"},{name:"Grated Parm",qty:"30g"},{name:"Croutons",qty:"20g"},{name:"Lettuce Mix",qty:"40g"}],
+    components:[{name:"Caesar Dressing",per:60,unit:"g",batch:2153,bUnit:"g"},{name:"Sub Buns",per:1,unit:"bun",batch:5,bUnit:"buns"}]
+  },
+  "Meatball Sub": {
+    cat:"sandwiches", allergens:["Gluten","Dairy","Egg"],
+    description:"Braised meatballs in tomato sauce, provolone, parmesan, banana peppers, fresh basil on a toasted sub bun",
+    steps:"Toast bun on Toast Setting. Add 4 meatballs with plenty of sauce. Top with parm and provolone and melt in oven. Finish with banana peppers and fresh basil. Roll, slice in half and wrap.",
+    ingredients:[{name:"Sub Bun",qty:"1"},{name:"Meatballs + Sauce",qty:"4 meatballs"},{name:"Parm Cheese",qty:"10g"},{name:"Provolone Cheese",qty:"3 slices"},{name:"Banana Peppers",qty:"20g"},{name:"Fresh Basil",qty:"15g"}],
+    components:[{name:"Meatballs",per:160,unit:"g",batch:5460,bUnit:"g"},{name:"Sub Buns",per:1,unit:"bun",batch:5,bUnit:"buns"}]
+  },
+  "SOTW: Dartmouth Donair Panini": {
+    cat:"sandwiches", allergens:["Gluten"],
+    description:"Donair meat, donair sauce, tomato, red onion on a toasted sub bun",
+    steps:"Press bun in panini press. Add donair meat, drizzle donair sauce, top with tomato and red onion. Roll, slice in half and wrap.",
+    ingredients:[{name:"Sub Bun",qty:"1"},{name:"Donair Meat",qty:"100g"},{name:"Donair Sauce",qty:"60g"},{name:"Tomato",qty:"30g"},{name:"Red Onion",qty:"20g"}],
+    components:[{name:"Donair Sauce",per:60,unit:"g",batch:1000,bUnit:"g"},{name:"Sub Buns",per:1,unit:"bun",batch:5,bUnit:"buns"}]
+  },
+  "BBQ Pork Slider": {
+    cat:"sandwiches", allergens:[],
+    description:"Pulled pork, BBQ sauce, coleslaw on a slider bun",
+    steps:"Toast slider bun. Add pulled pork, drizzle BBQ sauce, top with coleslaw. Wrap.",
+    ingredients:[{name:"Slider Bun",qty:"1"},{name:"Pulled Pork",qty:"80g"},{name:"BBQ Sauce",qty:"30g"},{name:"Coleslaw",qty:"30g"}],
+    components:[{name:"BBQ Sauce",per:30,unit:"g",batch:1000,bUnit:"g"},{name:"Slider Buns",per:1,unit:"bun",batch:12,bUnit:"buns"}]
+  },
+  "Falafel Smash Burger": {
+    cat:"sandwiches", allergens:["Sesame"],
+    description:"Chickpea falafel patties, tahini garlic mayo, pickled red onion, tomato, lettuce mix on a sub bun. Vegan.",
+    steps:"Spread tahini garlic mayo on both sides of the bun. Add 2 falafel patties and smash slightly. Top with pickled red onion, tomato, and lettuce mix. Roll, slice in half and wrap.",
+    ingredients:[{name:"Sub Bun",qty:"1"},{name:"Falafel Patties",qty:"2 x 95g"},{name:"Tahini Garlic Mayo",qty:"60g"},{name:"Pickled Red Onion",qty:"30g"},{name:"Tomato",qty:"30g"},{name:"Lettuce Mix",qty:"40g"}],
+    components:[{name:"Tahini Garlic Mayo",per:60,unit:"g",batch:2052,bUnit:"g"},{name:"Falafel Patties",per:190,unit:"g",batch:1800,bUnit:"g"},{name:"Sub Buns",per:1,unit:"bun",batch:5,bUnit:"buns"}]
+  },
+  "Mushroom Melt": {
+    cat:"sandwiches", allergens:["Dairy","Egg"],
+    description:"Mixed mushrooms, caramelized onion dip, provolone, parmesan, arugula on a toasted sub bun. Vegetarian.",
+    steps:"Toast bun on Toast Setting. Spread caramelized onion dip on both sides. Add mushrooms. Top with parm and provolone, melt in oven. Finish with fresh arugula. Roll, slice in half and wrap.",
+    ingredients:[{name:"Sub Bun",qty:"1"},{name:"Cooked Mushrooms",qty:"125g"},{name:"Caramelized Onion Dip",qty:"60g"},{name:"Parm Cheese",qty:"10g"},{name:"Provolone Cheese",qty:"3 slices"},{name:"Arugula",qty:"30g"}],
+    components:[{name:"Caramelized Onion Dip",per:60,unit:"g",batch:2570,bUnit:"g"},{name:"Sub Buns",per:1,unit:"bun",batch:5,bUnit:"buns"}]
+  },
+  "Roast Beef": {
+    cat:"sandwiches", allergens:["Dairy","Mustard","Egg"],
+    description:"Roasted Eye of Round, horseradish mayo, honey dijon, caramelized onions, provolone on a toasted sub bun",
+    steps:"Toast bun on Toast Setting. Spread horseradish mayo on each side. Place roast beef piece by piece. Drizzle honey dijon, add provolone and caramelized onion. Melt in oven. Roll, slice in half and wrap.",
+    ingredients:[{name:"Sub Bun",qty:"1"},{name:"Sliced Roast Beef",qty:"90g"},{name:"Horseradish Mayo",qty:"40g"},{name:"Honey Dijon Sauce",qty:"20g"},{name:"Caramelized Onions",qty:"30g"},{name:"Provolone Cheese",qty:"3 slices"}],
+    components:[{name:"Horseradish Mayo",per:40,unit:"g",batch:750,bUnit:"g"},{name:"Honey Dijon Sauce",per:20,unit:"g",batch:1000,bUnit:"g"},{name:"Caramelized Onions",per:30,unit:"g",batch:4000,bUnit:"g"},{name:"Sub Buns",per:1,unit:"bun",batch:5,bUnit:"buns"}]
+  },
+  // SIDES
+  "Broccoli Caesar Salad": {
+    cat:"sides", allergens:["Sesame"],
+    description:"Roasted broccoli florets tossed with tahini dressing",
+    steps:"Cut into florets, toss with oil and season with salt and pepper. Broil to get some char. Cool and store in 500ml delis. Portion at 90g.",
+    ingredients:[{name:"Broccoli Crown",qty:"3 each / batch"},{name:"Tahini Dressing",qty:"40g per portion"}],
+    components:[{name:"Tahini Dressing",per:40,unit:"g",batch:300,bUnit:"g"}]
+  },
+  "Wedge Salad": {
+    cat:"sides", allergens:["Dairy","Egg"],
+    description:"Iceberg wedge with ranch sauce",
+    steps:"Cut iceberg into a wedge, dress with ranch and serve.",
+    ingredients:[{name:"Iceberg Lettuce",qty:"1 wedge"},{name:"Ranch Sauce",qty:"40g"}],
+    components:[{name:"Ranch Sauce",per:40,unit:"g",batch:500,bUnit:"g"}]
+  },
+  "Chips & Dip": {
+    cat:"sides", allergens:[],
+    description:"House chips with caramelized onion dip",
+    steps:"Portion chips, serve with caramelized onion dip on the side.",
+    ingredients:[{name:"Chips",qty:"1 portion"},{name:"Caramelized Onion Dip",qty:"60g"}],
+    components:[{name:"Caramelized Onion Dip",per:60,unit:"g",batch:2570,bUnit:"g"}]
+  },
+  "Cookie": {
+    cat:"sides", allergens:["Sesame","Tree Nuts"],
+    description:"House-baked tahini or cashew cookie",
+    steps:"Bake fresh daily. Store at room temp.",
+    ingredients:[{name:"Cookie",qty:"90g each"}],
+    components:[{name:"Cookies (Tahini / Cashew)",per:90,unit:"g",batch:900,bUnit:"g"}]
+  }
+};
+
+// ── Sauce + Component Recipes (for modal popups) ──────────────────────────────
+var SAUCE_RECIPES = {
+  "House Mayo": {
+    batch:"7,595g", allergens:["Egg"],
+    note:"Make first — base for many sauces",
+    steps:"Blend all ingredients except oil in food processor. Slowly drizzle in oil to emulsify.",
+    ingredients:[{name:"Egg Yolk (pasteurized)",qty:"65g"},{name:"Water",qty:"5g"},{name:"Dijon",qty:"10g"},{name:"MSG",qty:"2g"},{name:"Salt",qty:"2g"},{name:"Lemon Juice",qty:"6g"},{name:"Neutral Oil",qty:"155g"}]
+  },
+  "Brown Butter Mayo": {
+    batch:"1,500g", allergens:["Egg","Dairy"],
+    steps:"Fold brown butter solids and lemon juice into house mayo and mix well.",
+    ingredients:[{name:"House Mayo",qty:"500g"},{name:"Brown Butter Solids",qty:"100g"},{name:"Lemon Juice",qty:"40g"}]
+  },
+  "Avo Mayo": {
+    batch:"1,500g", allergens:["Egg"],
+    steps:"Blend avocado into house mayo until smooth. Season to taste.",
+    ingredients:[{name:"House Mayo",qty:"base"},{name:"Ripe Avocado",qty:"to taste"},{name:"Lemon Juice",qty:"to taste"},{name:"Salt",qty:"to taste"}]
+  },
+  "Ranch Sauce": {
+    batch:"500g", allergens:["Egg","Dairy"],
+    steps:"Fine chop fresh dill and parsley. Mix all ingredients in robocoupe. Add fresh herbs last and pulse briefly — don't over mix.",
+    ingredients:[{name:"House Mayo",qty:"500g"},{name:"Hung Yogurt",qty:"225g"},{name:"Black Pepper",qty:"2g"},{name:"Dried Dill",qty:"4g"},{name:"Dried Parsley",qty:"4g"},{name:"Fresh Dill",qty:"20g"},{name:"Fresh Parsley",qty:"15g"}]
+  },
+  "Caesar Dressing": {
+    batch:"2,153g", allergens:["Egg","Dairy","Fish"],
+    steps:"Combine all except oil in robocoupe and blend to a paste. Slowly add canola oil to emulsify.",
+    ingredients:[{name:"Yolks",qty:"500g"},{name:"Capers",qty:"30g"},{name:"Garlic",qty:"45g"},{name:"Anchovy",qty:"15g"},{name:"Lemon Juice",qty:"50g"},{name:"Water",qty:"50g"},{name:"Lemon Zest/Juice",qty:"1 each"},{name:"Salt",qty:"15g"},{name:"Dijon",qty:"80g"},{name:"Grated Parm",qty:"30g"},{name:"Black Pepper",qty:"8g"},{name:"WW Vin",qty:"80g"},{name:"Canola Oil",qty:"1,250g"}]
+  },
+  "Tahini Garlic Mayo": {
+    batch:"2,052g", allergens:["Egg","Sesame"],
+    steps:"Combine all except oils in robocoupe and mix. Slowly add oils to emulsify.",
+    ingredients:[{name:"Yolks",qty:"500g"},{name:"Dijon",qty:"50g"},{name:"Salt",qty:"16g"},{name:"MSG",qty:"16g"},{name:"Chimi Spice",qty:"10g"},{name:"Tahini",qty:"150g"},{name:"Lemon",qty:"50g"},{name:"Water",qty:"60g"},{name:"Garlic Oil",qty:"400g"},{name:"Canola Oil",qty:"800g"}]
+  },
+  "Sundried Tomato Pesto": {
+    batch:"1,150g", allergens:["Tree Nuts"],
+    steps:"Blend sundried tomato, garlic and oil in robocoupe. Add sunflower seeds and pulse. Add remaining ingredients and mix.",
+    ingredients:[{name:"Sundried Tomatoes",qty:"444g"},{name:"Raw Garlic",qty:"25g"},{name:"Sunflower Seeds",qty:"200g"},{name:"Extra Virgin Olive Oil",qty:"600g"},{name:"Salt",qty:"25g"},{name:"Red Wine Vinegar",qty:"30g"}]
+  },
+  "Caramelized Onion Dip": {
+    batch:"2,570g", allergens:["Dairy","Egg"],
+    steps:"Mix all in robocoupe until combined.",
+    ingredients:[{name:"Caramelized Onion",qty:"535g"},{name:"Hung Yogurt",qty:"250g"},{name:"House Mayo",qty:"500g"},{name:"Garlic Powder",qty:"5g"},{name:"Salt",qty:"TT"},{name:"Black Pepper",qty:"TT"}]
+  },
+  "Donair Sauce": {
+    batch:"1,000g", allergens:["Dairy"],
+    steps:"Combine all ingredients and whisk well until smooth.",
+    ingredients:[{name:"Sweetened Condensed Milk",qty:"to yield"},{name:"White Vinegar",qty:"to yield"},{name:"Garlic Powder",qty:"to taste"},{name:"Salt",qty:"to taste"}]
+  },
+  "BBQ Sauce": {
+    batch:"1,000g", allergens:[],
+    steps:"Combine all and simmer until reduced and thickened. Adjust seasoning.",
+    ingredients:[{name:"Ketchup",qty:"base"},{name:"Brown Sugar",qty:"to taste"},{name:"Apple Cider Vinegar",qty:"to taste"},{name:"Worcestershire",qty:"to taste"},{name:"Smoked Paprika",qty:"to taste"}]
+  },
+  "Pico de Gallo": {
+    batch:"1,700g", allergens:[],
+    steps:"Dice all ingredients fine. Combine and season. Let sit 15 mins. Drain liquid before service.",
+    ingredients:[{name:"Tomatoes",qty:"large dice"},{name:"White Onion",qty:"fine dice"},{name:"Jalapeño",qty:"fine dice"},{name:"Cilantro",qty:"chopped"},{name:"Lime Juice",qty:"to taste"},{name:"Salt",qty:"to taste"}]
+  },
+  "Garden Pickles": {
+    batch:"2,000g", allergens:[],
+    steps:"Make pickling liquid first. Prep vegetables and submerge in hot brine. Cool and store.",
+    ingredients:[{name:"Seasonal Vegetables",qty:"to fill jar"},{name:"White Vinegar",qty:"brine"},{name:"Water",qty:"brine"},{name:"Sugar",qty:"brine"},{name:"Salt",qty:"brine"},{name:"Pickling Spices",qty:"to taste"}]
+  },
+  "Falafel Patties": {
+    batch:"1,800g (20 patties)", allergens:["Sesame","Gluten"],
+    steps:"Pulse chickpeas in robocoupe until smoothish but still chunky. Blend herbs separately. Mix all ingredients together. Portion into 4-inch round moulds at 95g each.",
+    ingredients:[{name:"Chickpeas",qty:"1,800g"},{name:"Parsley",qty:"150g"},{name:"Cilantro",qty:"200g"},{name:"Chimi Spice",qty:"40g"},{name:"Garlic Powder",qty:"15g"},{name:"Onion Powder",qty:"15g"},{name:"Chickpea Flour",qty:"300g"},{name:"Nutritional Yeast",qty:"100g"},{name:"Salt",qty:"25g"}]
+  },
+  "Meatballs": {
+    batch:"5,460g", allergens:["Gluten","Egg","Dairy"],
+    steps:"Blend celery, carrot, onion, garlic in robocoupe to a paste. Cook in pot for 20 mins. Cool. Mix eggs and milk, combine with panko and hydrate 15 mins. Gently mix all together. Portion at 40g balls.",
+    ingredients:[{name:"Celery",qty:"150g"},{name:"Carrot",qty:"250g"},{name:"Onion",qty:"500g"},{name:"Garlic",qty:"25g"},{name:"Ground Beef",qty:"1,365g"},{name:"Ground Pork",qty:"1,365g"},{name:"Panko",qty:"200g"},{name:"Milk",qty:"250g"},{name:"Eggs",qty:"2 each"},{name:"Salt",qty:"30g"},{name:"Fresh Parsley (chopped)",qty:"25g"},{name:"Dried Oregano",qty:"5g"}]
+  },
+  "Donair Meat": {
+    batch:"5,000g", allergens:[],
+    steps:"Combine all and mix extremely well. Pack tightly and roast or cook on rotisserie. Slice thin for service.",
+    ingredients:[{name:"Beef",qty:"1,000g"},{name:"Onion Puree",qty:"125g"},{name:"Garlic Puree",qty:"20g"},{name:"Chimi Spice",qty:"15g"},{name:"Steak Spice",qty:"15g"},{name:"Salt",qty:"20g"},{name:"Chili Flakes",qty:"5g"},{name:"Garlic Oil",qty:"20g"}]
+  },
+  "Cuban Roast Pork": {
+    batch:"6,000g", allergens:[],
+    note:"Slow roast overnight",
+    steps:"Marinate pork in citrus and spices overnight. Slow roast at low temp until tender. Pull or slice thin for service.",
+    ingredients:[{name:"Pork Shoulder",qty:"6,000g"},{name:"Citrus Juice",qty:"to marinate"},{name:"Garlic",qty:"to marinate"},{name:"Oregano",qty:"to marinate"},{name:"Cumin",qty:"to marinate"},{name:"Salt",qty:"to marinate"}]
+  },
+  "Ballpark Mustard": {
+    batch:"2,100g", allergens:["Mustard"],
+    steps:"Combine all ingredients and whisk until smooth. Adjust with vinegar and salt.",
+    ingredients:[{name:"Yellow Mustard Seeds",qty:"base"},{name:"White Vinegar",qty:"to yield"},{name:"Turmeric",qty:"to taste"},{name:"Salt",qty:"to taste"}]
+  },
+  "Horseradish Mayo": {
+    batch:"750g", allergens:["Egg"],
+    steps:"Fold prepared horseradish into house mayo. Season with lemon juice and salt.",
+    ingredients:[{name:"House Mayo",qty:"base"},{name:"Prepared Horseradish",qty:"to taste"},{name:"Lemon Juice",qty:"to taste"},{name:"Salt",qty:"to taste"}]
+  },
+  "Honey Dijon Sauce": {
+    batch:"1,000g", allergens:["Mustard"],
+    steps:"Whisk all ingredients together until smooth.",
+    ingredients:[{name:"Dijon Mustard",qty:"base"},{name:"Honey",qty:"to taste"},{name:"Apple Cider Vinegar",qty:"to taste"},{name:"Salt",qty:"to taste"}]
+  },
+  "Celeriac Remoulade": {
+    batch:"500g", allergens:["Egg","Mustard"],
+    steps:"Peel and julienne celeriac. Toss with lemon immediately. Mix with mayo, dijon, and seasoning. Let sit to soften slightly before service.",
+    ingredients:[{name:"Celeriac",qty:"julienned"},{name:"House Mayo",qty:"base"},{name:"Dijon",qty:"to taste"},{name:"Lemon Juice",qty:"to taste"},{name:"Salt & Pepper",qty:"TT"}]
+  },
+  "Sherry Vin": {
+    batch:"3,630g", allergens:["Mustard"],
+    steps:"Combine all in Vitamix except oils. Slowly add oils to emulsify.",
+    ingredients:[{name:"Smooth Dijon",qty:"225g"},{name:"Maple",qty:"225g"},{name:"Sherry Vinegar",qty:"325g"},{name:"Salt",qty:"30g"},{name:"Black Pepper",qty:"10g"},{name:"Canola Oil",qty:"900g"},{name:"Olive Oil",qty:"100g"},{name:"XG (xanthan)",qty:"1g"}]
+  },
+  "Caramelized Onions": {
+    batch:"4,000g", allergens:[],
+    steps:"Slice onions thin. Cook low and slow in oil with salt until deep golden brown and jammy, about 45–60 mins. Cool and store.",
+    ingredients:[{name:"Yellow Onions",qty:"large quantity"},{name:"Neutral Oil",qty:"to coat"},{name:"Salt",qty:"TT"}]
+  },
+  "Sub Buns": {
+    batch:"5 buns", allergens:["Gluten","Egg"],
+    note:"Proof overnight — make the day before",
+    steps:"Mix poolish and proof at 85F for 1hr. Mix bread in mixer 10–15 mins. Proof at 85F for 1hr. Fold the dough, portion at 170g, shape. Rest overnight in fridge. Proof 1hr. Spray, add topping, bake at 400F with ice — 10 mins, flip trays, 5 more mins.",
+    ingredients:[{name:"Water (poolish)",qty:"400g"},{name:"Flour (poolish)",qty:"400g"},{name:"Starter (poolish)",qty:"200g"},{name:"Yeast (poolish)",qty:"10g"},{name:"Flour",qty:"440g"},{name:"Water",qty:"150g"},{name:"Olive Oil",qty:"25g"},{name:"Salt",qty:"17g"},{name:"Poolish",qty:"1,010g"}]
+  },
+  "Slider Buns": {
+    batch:"12 buns", allergens:["Gluten","Egg","Dairy"],
+    steps:"Make vegan brioche dough. Portion at 75g balls. Proof in silicone moulds 45–60 mins. Spray with water, add sesame seeds and maldon salt. Bake 350F for 18 mins rotating halfway.",
+    ingredients:[{name:"Oat Milk",qty:"540g"},{name:"Active Dry Yeast",qty:"25g"},{name:"AP Flour",qty:"900g"},{name:"Sugar",qty:"25g"},{name:"Vegan Butter (RT)",qty:"275g"},{name:"Salt",qty:"25g"}]
+  }
+};
+
+var STANDALONE_SAUCES = [
+  {name:"House Mayo",            batch:7595,  bUnit:"g",   note:"Make first — base for many sauces"},
+  {name:"Ranch Sauce",           batch:500,   bUnit:"g",   note:null},
+  {name:"Avo Mayo",              batch:1500,  bUnit:"g",   note:null},
+  {name:"Brown Butter Mayo",     batch:1500,  bUnit:"g",   note:null},
+  {name:"Tahini Garlic Mayo",    batch:2052,  bUnit:"g",   note:null},
+  {name:"Horseradish Mayo",      batch:750,   bUnit:"g",   note:null},
+  {name:"Honey Dijon Sauce",     batch:1000,  bUnit:"g",   note:null},
+  {name:"Caesar Dressing",       batch:2153,  bUnit:"g",   note:null},
+  {name:"Sundried Tomato Pesto", batch:1150,  bUnit:"g",   note:null},
+  {name:"Donair Sauce",          batch:1000,  bUnit:"g",   note:null},
+  {name:"BBQ Sauce",             batch:1000,  bUnit:"g",   note:null},
+  {name:"Caramelized Onion Dip", batch:2570,  bUnit:"g",   note:null},
+  {name:"Pico de Gallo",         batch:1700,  bUnit:"g",   note:null},
+  {name:"Celeriac Remoulade",    batch:500,   bUnit:"g",   note:null},
+  {name:"Sherry Vin",            batch:3630,  bUnit:"g",   note:null},
+  {name:"Ballpark Mustard",      batch:2100,  bUnit:"g",   note:null},
+  {name:"Garden Pickles",        batch:2000,  bUnit:"g",   note:null},
+  {name:"Caramelized Onions",    batch:4000,  bUnit:"g",   note:null},
+  {name:"Cuban Roast Pork",      batch:6000,  bUnit:"g",   note:"Slow roast overnight"},
+  {name:"Falafel Patties",       batch:1800,  bUnit:"g",   note:"20 patties per batch"},
+  {name:"Meatballs",             batch:5460,  bUnit:"g",   note:"Include braise time"},
+  {name:"Donair Meat",           batch:5000,  bUnit:"g",   note:null}
+];
+
+var BREAD_ITEMS = [
+  {name:"Sub Buns",         batch:5,  bUnit:"buns",   note:"Proof overnight — make the day before"},
+  {name:"Slider Buns",      batch:12, bUnit:"buns",   note:null},
+  {name:"GF Sub Buns",      batch:5,  bUnit:"buns",   note:null},
+  {name:"Sourdough Loaves", batch:2,  bUnit:"loaves", note:"2-day process — plan well ahead"}
+];
+
+var salesData = {};
+var scaleFactor = 1.0;
+var activeTab = "all";
+
+// ── Modal (inline style — no CSS class toggling) ──────────────────────────────
+var currentOverlay = null;
+
+function openModal(name) {
+  var recipe = RECIPES[name] || SAUCE_RECIPES[name];
+  if (!recipe) return;
+
+  if (currentOverlay) currentOverlay.parentNode.removeChild(currentOverlay);
+
+  var allergenHtml = '';
+  if (recipe.allergens && recipe.allergens.length) {
+    allergenHtml = '<h3>Allergens</h3><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;">';
+    for (var a = 0; a < recipe.allergens.length; a++) {
+      allergenHtml += '<span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px;background:#fcebeb;color:#a32d2d;">' + recipe.allergens[a] + '</span>';
+    }
+    allergenHtml += '</div>';
+  }
+
+  var ingHtml = '';
+  for (var i = 0; i < recipe.ingredients.length; i++) {
+    var ing = recipe.ingredients[i];
+    ingHtml += '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #d3d1c7;font-size:14px;">';
+    ingHtml += '<span>' + ing.name + '</span>';
+    ingHtml += '<span style="font-weight:600;color:#3b6d11;font-size:13px;">' + ing.qty + '</span>';
+    ingHtml += '</div>';
+  }
+
+  var stepsHtml = recipe.steps
+    ? '<h3>Assembly</h3><div style="font-size:13px;color:#5f5e5a;line-height:1.7;background:#f1efe8;border-radius:6px;padding:12px 14px;margin-bottom:18px;">' + recipe.steps + '</div>'
+    : '';
+
+  var batchHtml = recipe.batch
+    ? '<div style="font-size:12px;color:#888780;margin-bottom:18px;">Batch size: <strong>' + recipe.batch + '</strong>' + (recipe.note ? ' &mdash; ' + recipe.note : '') + '</div>'
+    : '';
+
+  var html = '<div id="larrys-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:24px;">'
+    + '<div style="background:#fff;border-radius:14px;max-width:540px;width:100%;max-height:88vh;overflow-y:auto;padding:28px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,0.25);">'
+    + '<button id="larrys-modal-x" style="position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;border:1px solid #d3d1c7;background:#f1efe8;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:#5f5e5a;font-family:inherit;line-height:1;">✕</button>'
+    + '<h2 style="font-size:20px;font-weight:700;padding-right:36px;margin-bottom:4px;">' + name + '</h2>'
+    + (recipe.description ? '<p style="font-size:13px;color:#888780;margin-bottom:16px;line-height:1.5;">' + recipe.description + '</p>' : '')
+    + batchHtml
+    + allergenHtml
+    + '<h3 style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#888780;margin-bottom:8px;">Ingredients</h3>'
+    + '<div style="margin-bottom:18px;">' + ingHtml + '</div>'
+    + stepsHtml
+    + '</div></div>';
+
+  var div = document.createElement('div');
+  div.innerHTML = html;
+  document.body.appendChild(div);
+  currentOverlay = div;
+
+  document.getElementById('larrys-modal-x').addEventListener('click', closeModal);
+  document.getElementById('larrys-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+}
+
+function closeModal() {
+  if (currentOverlay) {
+    currentOverlay.parentNode.removeChild(currentOverlay);
+    currentOverlay = null;
+  }
+}
+
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+
+// ── CSV parser ────────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  var lines = text.trim().split(/\r?\n/);
+  var out = {};
+  for (var i = 1; i < lines.length; i++) {
+    var cols = [], cur = '', inQ = false;
+    for (var c = 0; c < lines[i].length; c++) {
+      var ch = lines[i][c];
+      if (ch === '"') inQ = !inQ;
+      else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else cur += ch;
+    }
+    cols.push(cur.trim());
+    var name = cols[0] ? cols[0].replace(/^"+|"+$/g, '') : '';
+    var qty = parseFloat(cols[2]);
+    if (name && !isNaN(qty) && qty > 0) out[name] = qty;
+  }
+  return out;
+}
+
+function findSales(key) {
+  if (salesData[key] !== undefined) return salesData[key];
+  var kl = key.toLowerCase();
+  var keys = Object.keys(salesData);
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    if (k.toLowerCase().indexOf(kl) !== -1 || kl.indexOf(k.toLowerCase()) !== -1) return salesData[k];
+  }
+  return 0;
+}
+
+// ── Aggregate ─────────────────────────────────────────────────────────────────
+function aggregate() {
+  var agg = {}, totalSand = 0;
+  var rKeys = Object.keys(RECIPES);
+  for (var i = 0; i < rKeys.length; i++) {
+    var item = rKeys[i];
+    var recipe = RECIPES[item];
+    var sold = findSales(item);
+    if (!sold) continue;
+    if (recipe.cat === 'sandwiches') totalSand += sold;
+    for (var j = 0; j < recipe.components.length; j++) {
+      var c = recipe.components[j];
+      if (!agg[c.name]) agg[c.name] = {per:c.per,unit:c.unit,batch:c.batch,bUnit:c.bUnit,total:0,sources:[]};
+      agg[c.name].total += sold * c.per * scaleFactor;
+      agg[c.name].sources.push({item:item,qty:sold});
+    }
+  }
+  return {agg:agg,totalSand:totalSand};
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  var res = aggregate();
+  var agg = res.agg, totalSand = res.totalSand;
+  var tbody = document.getElementById('prepBody');
+  tbody.innerHTML = '';
+
+  var topItem = '', topQty = 0;
+  var sdKeys = Object.keys(salesData);
+  for (var i = 0; i < sdKeys.length; i++) {
+    var k = sdKeys[i], v = salesData[k];
+    var rKeys = Object.keys(RECIPES);
+    for (var j = 0; j < rKeys.length; j++) {
+      if ((rKeys[j] === k || k.toLowerCase().indexOf(rKeys[j].toLowerCase()) !== -1) && v > topQty) {
+        topQty = v; topItem = k; break;
+      }
+    }
+  }
+  document.getElementById('mSand').textContent = totalSand.toLocaleString();
+  document.getElementById('mTop').textContent = topItem || '—';
+  document.getElementById('mTopQty').textContent = topQty ? topQty.toLocaleString() + ' sold' : '';
+  document.getElementById('mScale').textContent = Math.round(scaleFactor * 100) + '%';
+  document.getElementById('mItems').textContent = Object.keys(agg).length + STANDALONE_SAUCES.length;
+
+  function addCat(label) {
+    var tr = document.createElement('tr');
+    tr.className = 'cat-row';
+    tr.innerHTML = '<td colspan="4">' + label + '</td>';
+    tbody.appendChild(tr);
+  }
+
+  function hasRecipe(name) {
+    return !!(RECIPES[name] || SAUCE_RECIPES[name]);
+  }
+
+  function addRow(name, totalNeeded, batchSize, batchUnit, unit, sources, note) {
+    var batches = totalNeeded > 0 ? Math.ceil(totalNeeded / batchSize) : null;
+    var tr = document.createElement('tr');
+    var canClick = hasRecipe(name);
+    if (canClick) tr.className = 'crow';
+
+    var noteBadge = note ? '<span class="badge badge-warn">' + note + '</span>' : '';
+    var srcParts = [];
+    if (sources && sources.length) {
+      for (var s = 0; s < sources.length; s++) srcParts.push(sources[s].item + ' x' + sources[s].qty);
+    }
+    var srcStr = srcParts.join(', ');
+    var srcTotal = 0;
+    if (sources) for (var s2 = 0; s2 < sources.length; s2++) srcTotal += sources[s2].qty;
+
+    var batchesHtml = batches
+      ? '<div class="batches-big">' + batches + '</div><div class="batch-sub">' + batchSize.toLocaleString() + ' ' + batchUnit + ' / batch</div>'
+      : '<span class="badge badge-par">par</span>';
+    var neededHtml = totalNeeded > 0
+      ? '<span class="qty-needed">' + Math.round(totalNeeded).toLocaleString() + ' ' + unit + '</span>'
+      : '<span class="dash">—</span>';
+
+    var nameDisplay = canClick
+      ? '<span class="rlink">' + name + '</span>' + noteBadge
+      : '<span class="rname">' + name + '</span>' + noteBadge;
+
+    tr.innerHTML = '<td>' + nameDisplay + (srcStr ? '<div class="rsrc">' + srcStr + '</div>' : '') + '</td>'
+      + '<td>' + (srcStr ? '<span style="font-size:12px;color:var(--text-light)">' + srcTotal.toLocaleString() + ' units</span>' : '<span class="dash">—</span>') + '</td>'
+      + '<td>' + neededHtml + '</td>'
+      + '<td>' + batchesHtml + '</td>';
+
+    if (canClick) {
+      (function(n) {
+        tr.addEventListener('click', function() { openModal(n); });
+      })(name);
+    }
+    tbody.appendChild(tr);
+  }
+
+  var rowCount = 0;
+
+  if (activeTab === 'all' || activeTab === 'sandwiches') {
+    addCat('Sandwich components — calculated from sales');
+    var entries = [];
+    var aggKeys = Object.keys(agg);
+    for (var i = 0; i < aggKeys.length; i++) entries.push({name:aggKeys[i],data:agg[aggKeys[i]]});
+    entries.sort(function(a,b) { return b.data.total - a.data.total; });
+    for (var i = 0; i < entries.length; i++) {
+      var n = entries[i].name, d = entries[i].data;
+      var isBread = false;
+      for (var b = 0; b < BREAD_ITEMS.length; b++) { if (BREAD_ITEMS[b].name === n) { isBread = true; break; } }
+      if (isBread) continue;
+      addRow(n, d.total, d.batch, d.bUnit, d.unit, d.sources, null);
+      rowCount++;
+    }
+  }
+
+  if (activeTab === 'all' || activeTab === 'sauces') {
+    addCat('Sauces, dressings & condiments');
+    for (var i = 0; i < STANDALONE_SAUCES.length; i++) {
+      var s = STANDALONE_SAUCES[i];
+      var inAgg = agg[s.name];
+      addRow(s.name, inAgg ? inAgg.total : 0, s.batch, s.bUnit, 'g', inAgg ? inAgg.sources : [], s.note);
+      rowCount++;
+    }
+  }
+
+  if (activeTab === 'all' || activeTab === 'bread') {
+    addCat('Bread & buns');
+    for (var i = 0; i < BREAD_ITEMS.length; i++) {
+      var b2 = BREAD_ITEMS[i];
+      var inAgg = agg[b2.name];
+      addRow(b2.name, inAgg ? inAgg.total : 0, b2.batch, b2.bUnit, b2.bUnit, inAgg ? inAgg.sources : [], b2.note);
+      rowCount++;
+    }
+  }
+
+  document.getElementById('noRows').style.display = rowCount === 0 ? 'block' : 'none';
+}
+
+// ── Load file ─────────────────────────────────────────────────────────────────
+function loadFile(file) {
+  document.getElementById('mPeriod').textContent = file.name.replace('ProductMix_','').replace(/_/g,' ').replace('.csv','');
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    salesData = parseCSV(e.target.result);
+    var hasMatch = false;
+    var rKeys = Object.keys(RECIPES);
+    for (var i = 0; i < rKeys.length; i++) { if (findSales(rKeys[i]) > 0) { hasMatch = true; break; } }
+    if (!hasMatch) {
+      document.getElementById('noMatch').style.display = 'block';
+      document.getElementById('appContent').style.display = 'none';
+      return;
+    }
+    document.getElementById('noMatch').style.display = 'none';
+    document.getElementById('appContent').style.display = 'block';
+    document.getElementById('footerNote').style.display = 'block';
+    document.getElementById('dropZone').innerHTML = '<div class="upload-icon">✅</div><h2>' + file.name + '</h2><p style="color:var(--green)">Loaded — click to upload a different file</p><input type="file" id="fileInput2" accept=".csv" style="display:none">';
+    document.getElementById('fileInput2').addEventListener('change', function(e2) { if (e2.target.files[0]) loadFile(e2.target.files[0]); });
+    document.getElementById('dropZone').addEventListener('click', function() { document.getElementById('fileInput2').click(); });
+    render();
+  };
+  reader.readAsText(file);
+}
+
+// ── Auto-load from URL ────────────────────────────────────────────────────────
+(function() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var data = params.get('sales');
+    if (data) {
+      salesData = JSON.parse(decodeURIComponent(data));
+      var period = params.get('period') || 'Auto-loaded';
+      document.getElementById('mPeriod').textContent = period;
+      document.getElementById('appContent').style.display = 'block';
+      document.getElementById('footerNote').style.display = 'block';
+      document.getElementById('dropZone').innerHTML = '<div class="upload-icon">✅</div><h2>Sales data auto-loaded</h2><p style="color:var(--green)">Period: ' + period + '</p>';
+      render();
+    }
+  } catch(e) {}
+})();
+
+// ── Events ────────────────────────────────────────────────────────────────────
+document.getElementById('dropZone').addEventListener('click', function() { document.getElementById('fileInput').click(); });
+document.getElementById('fileInput').addEventListener('change', function(e) { if (e.target.files[0]) loadFile(e.target.files[0]); });
+var dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', function() { dz.classList.remove('drag'); });
+dz.addEventListener('drop', function(e) { e.preventDefault(); dz.classList.remove('drag'); if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+document.getElementById('scaleSlider').addEventListener('input', function() {
+  scaleFactor = this.value / 100;
+  document.getElementById('scaleLabel').textContent = this.value + '%';
+  document.getElementById('mScale').textContent = this.value + '%';
+  this.style.setProperty('--pct', ((this.value - 50) / 150 * 100) + '%');
+  render();
+});
+document.querySelectorAll('.tab').forEach(function(t) {
+  t.addEventListener('click', function() {
+    document.querySelectorAll('.tab').forEach(function(x) { x.classList.remove('active'); });
+    this.classList.add('active');
+    activeTab = this.dataset.tab;
+    render();
+  });
+});
+
+// ── CSV Export ────────────────────────────────────────────────────────────────
+function esc(v) { return '"' + String(v).replace(/"/g,'""') + '"'; }
+function downloadCSV() {
+  var res = aggregate();
+  var agg = res.agg, totalSand = res.totalSand;
+  var period = document.getElementById('mPeriod').textContent || '';
+  var today = new Date().toLocaleDateString('en-CA');
+  var rows = [];
+  rows.push([esc("LARRY'S SANDWICHES — PREP SHEET"),'','','','','']);
+  rows.push([esc('Period: '+period),'',esc('Generated: '+today),'',esc('Scale: '+Math.round(scaleFactor*100)+'%'),'']);
+  rows.push([esc('Total sandwiches sold: '+totalSand.toLocaleString()),'','','','','']);
+  rows.push(['','','','','','']);
+  var HDR = [esc('Recipe/Component'),esc('Sold from'),esc('Total needed'),esc('Unit'),esc('Batch size'),esc('Batches')];
+  rows.push([esc('SANDWICH COMPONENTS'),'','','','','']); rows.push(HDR);
+  var entries = Object.keys(agg).map(function(k){return {name:k,data:agg[k]};}).sort(function(a,b){return b.data.total-a.data.total;});
+  for (var i=0;i<entries.length;i++) {
+    var n=entries[i].name,d=entries[i].data;
+    var isBread=false; for(var b=0;b<BREAD_ITEMS.length;b++){if(BREAD_ITEMS[b].name===n){isBread=true;break;}} if(isBread)continue;
+    var batches=d.total>0?Math.ceil(d.total/d.batch):'';
+    rows.push([esc(n),esc(d.sources.map(function(s){return s.item+' x'+s.qty;}).join(', ')),Math.round(d.total)||'',esc(d.unit),d.batch,batches||'par']);
+  }
+  rows.push(['','','','','','']); rows.push([esc('SAUCES & CONDIMENTS'),'','','','','']); rows.push(HDR);
+  for (var i=0;i<STANDALONE_SAUCES.length;i++) {
+    var s=STANDALONE_SAUCES[i],inAgg=agg[s.name],total=inAgg?inAgg.total:0,batches=total>0?Math.ceil(total/s.batch):'';
+    rows.push([esc(s.note?s.name+' ['+s.note+']':s.name),esc(inAgg?inAgg.sources.map(function(x){return x.item+' x'+x.qty;}).join(', '):''),Math.round(total)||'',esc('g'),s.batch,batches||'par']);
+  }
+  rows.push(['','','','','','']); rows.push([esc('BREAD & BUNS'),'','','','','']); rows.push(HDR);
+  for (var i=0;i<BREAD_ITEMS.length;i++) {
+    var b2=BREAD_ITEMS[i],inAgg=agg[b2.name],total=inAgg?inAgg.total:0,batches=total>0?Math.ceil(total/b2.batch):'';
+    rows.push([esc(b2.note?b2.name+' ['+b2.note+']':b2.name),esc(inAgg?inAgg.sources.map(function(x){return x.item+' x'+x.qty;}).join(', '):''),Math.round(total)||'',esc(b2.bUnit),b2.batch+' per batch',batches||'par']);
+  }
+  var csv=rows.map(function(r){return r.join(',');}).join('\n');
+  var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='Larrys_Prep_'+(period.replace(/\s/g,'_')||today)+'.csv'; a.click();
+}
+</script>
+</body>
+</html>
